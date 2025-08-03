@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>🎵 YouTube Channel MP3 Downloader</title>
-    <style>
+  <style>
     body {
       font-family: Arial, sans-serif;
       background: #121212;
@@ -109,17 +110,24 @@
   </style>
 </head>
 <body>
-  <h2>🎵 YouTube Channel MP3 Downloader</h2>
-  <form id="form">
-    <input type="text" id="input" placeholder="Channel ID, @username, atau URL video" required style="width:60%">
-    <button type="submit">Cari</button>
-  </form>
-  <div id="results"></div>
-  <footer>
-    <p>© 2025 by Saipul Anuar • Powered by YouTube RSS & API</p>
-  </footer>
 
-  <script>
+<header>
+  <h1>🎵 YouTube Channel MP3 Downloader</h1>
+  <p>Contoh: @saipulanuar atau URL channel</p>
+</header>
+
+<form id="form">
+  <input type="text" id="channelId" placeholder="Masukkan Channel ID, URL, atau @username..." />
+  <button type="submit">Cari</button>
+</form>
+
+<div id="results"></div>
+
+<footer>
+  © 2025 by Saipul Anuar • Powered by YouTube RSS & API
+</footer>
+
+<script>
     document.getElementById('form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = document.getElementById('input').value.trim();
@@ -223,5 +231,6 @@
       }
     });
   </script>
+
 </body>
 </html>
