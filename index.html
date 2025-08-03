@@ -2,165 +2,145 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Downloader MP3 YouTube</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YouTube Channel MP3 Downloader</title>
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f8f9fa;
-      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
       padding: 20px;
+      margin: 0;
     }
-    h1, h2 {
+
+    h1 {
       text-align: center;
       color: #333;
     }
+
     form {
-      max-width: 500px;
-      margin: 0 auto 30px auto;
+      max-width: 600px;
+      margin: 0 auto 30px;
       display: flex;
       gap: 10px;
     }
+
     input[type="text"] {
       flex: 1;
       padding: 10px;
       font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
     }
+
     button {
-      padding: 10px 16px;
-      background-color: #007bff;
-      color: white;
+      padding: 10px 20px;
+      background: #28a745;
+      color: #fff;
       border: none;
-      border-radius: 6px;
-      font-weight: bold;
       cursor: pointer;
     }
+
     button:hover {
-      background-color: #0056b3;
+      background: #218838;
     }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-    }
-    .card {
-      background-color: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.2s;
-    }
-    .card:hover {
-      transform: translateY(-5px);
-    }
-    .thumbnail img {
-      width: 100%;
-    }
-    .content {
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .title {
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    .btn {
-      background-color: #28a745;
-      color: white;
-      padding: 10px;
-      text-align: center;
-      text-decoration: none;
-      border-radius: 6px;
-      font-weight: bold;
-    }
-    .btn:hover {
-      background-color: #218838;
-    }
-    .btn-video {
-      background-color: #dc3545;
-      margin-top: 5px;
-    }
+
     .error {
       text-align: center;
       color: red;
       margin-bottom: 20px;
     }
-    footer {
-      text-align: center;
-      margin-top: 40px;
-      color: #888;
+
+    .videos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .card {
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      width: 280px;
+    }
+
+    .thumbnail img {
+      width: 100%;
+      border-radius: 8px;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: bold;
+      margin: 10px 0;
+      color: #333;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 8px 12px;
+      margin-right: 10px;
+      margin-top: 5px;
+      text-decoration: none;
+      color: #fff;
+      background: #007bff;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .btn-video {
+      background: #dc3545;
     }
   </style>
 </head>
 <body>
+
 <h1>🎵 YouTube Channel MP3 Downloader</h1>
-<form id="channelForm">
-  <input type="text" id="channelUrl" placeholder="Masukkan URL Channel YouTube" required>
+
+<form id="searchForm">
+  <input type="text" id="channelId" placeholder="Masukkan Channel ID YouTube" required>
   <button type="submit">Cari</button>
 </form>
-<div id="error" class="error"></div>
-<div id="results" class="container"></div>
 
-<footer>
-  &copy; <span id="year"></span> by Saipul Anuar • Powered by YouTube RSS & API
+<div class="error" id="errorBox"></div>
+<div class="videos" id="videoContainer"></div>
+
+<footer style="text-align:center; margin-top:40px;">
+  <p>© 2025 by Saipul Anuar • Powered by YouTube RSS & API</p>
 </footer>
 
 <script>
-  document.getElementById("year").textContent = new Date().getFullYear();
+  const form = document.getElementById('searchForm');
+  const errorBox = document.getElementById('errorBox');
+  const container = document.getElementById('videoContainer');
 
-  function getChannelIdFromUrl(url) {
-    try {
-      const parsed = new URL(url);
-      const path = parsed.pathname.replace(/^\/+|\/+$/g, '');
-      if (path.startsWith('channel/')) {
-        return path.substring(8);
-      }
-    } catch (e) {
-      return null;
-    }
-    return null;
-  }
-
-  document.getElementById('channelForm').addEventListener('submit', async function (e) {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const channelId = document.getElementById('channelId').value.trim();
+    if (!channelId) return;
 
-    const urlInput = document.getElementById('channelUrl').value.trim();
-    const errorBox = document.getElementById('error');
-    const container = document.getElementById('results');
-    container.innerHTML = '';
     errorBox.textContent = '';
-
-    const channelId = getChannelIdFromUrl(urlInput);
-    if (!channelId) {
-      errorBox.textContent = '❌ URL channel tidak valid. Gunakan format https://www.youtube.com/channel/...';
-      return;
-    }
+    container.innerHTML = '<p>🔄 Memuat video...</p>';
 
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
     try {
-      const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`);
-      const text = await res.text();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(text, 'application/xml');
+      const res = await fetch(apiUrl);
+      const data = await res.json();
 
-      const entries = xml.querySelectorAll('entry');
+      if (!data.items || data.items.length === 0) {
+        throw new Error('Tidak ada video ditemukan.');
+      }
+
+      container.innerHTML = '';
       let counter = 0;
-      for (let entry of entries) {
-        if (counter >= 15) break;
 
-        const link = entry.querySelector('link').getAttribute('href');
-        if (link.includes('/shorts/')) continue;
+      for (let item of data.items) {
+        if (counter >= 20) break;
+        if (item.link.includes('/shorts/')) continue;
 
-        const title = entry.querySelector('title').textContent;
-        const videoId = entry.querySelector('yt\\:videoId').textContent;
+        const videoId = item.link.split('=')[1];
+        const title = item.title;
         const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
         const card = document.createElement('div');
@@ -169,19 +149,20 @@
           <div class="thumbnail">
             <img src="${thumbnail}" alt="Thumbnail">
           </div>
-          <div class="content">
-            <div class="title">${title}</div>
-            <a class="btn" href="https://api.saipulanuar.eu.org/api/download/ytdl?url=${encodeURIComponent(link)}" target="_blank">Download MP3</a>
-            <a class="btn btn-video" href="https://api.saipulanuar.eu.org/api/download/ytdl?url=${encodeURIComponent(link)}&type=video" target="_blank">Download Video</a>
-          </div>
+          <div class="title">${title}</div>
+          <a class="btn" href="https://api.saipulanuar.eu.org/api/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp3" target="_blank">Download MP3</a>
+          <a class="btn btn-video" href="https://api.saipulanuar.eu.org/api/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp4" target="_blank">Download Video</a>
         `;
         container.appendChild(card);
         counter++;
       }
     } catch (err) {
-      errorBox.textContent = '❌ Gagal mengambil RSS feed. Pastikan URL benar atau coba lagi nanti.';
+      console.error(err);
+      errorBox.textContent = '❌ Gagal mengambil video dari channel. Pastikan channel_id benar.';
+      container.innerHTML = '';
     }
   });
 </script>
+
 </body>
 </html>
