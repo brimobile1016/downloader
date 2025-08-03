@@ -268,12 +268,21 @@ async function download(videoId, type) {
       alert('❌ Gagal mengambil link download.');
       return;
     }
+
     const link = type === 'mp3' ? json.result.mp3 : json.result.mp4;
-    window.open(link, '_blank');
+
+    // Buat elemen <a> secara dinamis
+    const a = document.createElement('a');
+    a.href = link;
+    a.setAttribute('download', ''); // Memberi tahu browser untuk mendownload
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   } catch (err) {
     alert('❌ Terjadi kesalahan saat menghubungi API.');
   }
 }
+
 </script>
 
 
