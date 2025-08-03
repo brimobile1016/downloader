@@ -207,8 +207,8 @@ for (let item of data.items) {
   card.innerHTML = `
     <img src="${thumbnail}" alt="Thumbnail">
     <div class="title">${title}</div>
-    <a class="btn" href="https://api.saipulanuar.eu.org/api/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp3" target="_blank">Download MP3</a>
-    <a class="btn btn-video" href="https://api.saipulanuar.eu.org/api/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp4" target="_blank">Download Video</a>
+    <a class="btn" href="https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp3" target="_blank">Download MP3</a>
+    <a class="btn btn-video" href="https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp4" target="_blank">Download Video</a>
   `;
   container.appendChild(card);
   counter++;
