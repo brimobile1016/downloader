@@ -259,6 +259,23 @@ async function renderSingleVideo(videoId) {
   }
 }
 
+  async function download(videoId, type) {
+  const apiUrl = https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId};
+  try {
+    const res = await fetch(apiUrl);
+    const json = await res.json();
+    if (!json.status) {
+      alert('❌ Gagal mengambil link download.');
+      return;
+    }
+    const link = type === 'mp3' ? json.result.mp3 : json.result.mp4;
+    window.open(link, '_blank');
+  } catch (err) {
+    alert('❌ Terjadi kesalahan saat menghubungi API.');
+  }
+}
+
+  /*
 async function download(videoId, type) {
   const apiUrl = `https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}`;
   try {
@@ -282,6 +299,7 @@ async function download(videoId, type) {
     alert('❌ Terjadi kesalahan saat menghubungi API.');
   }
 }
+*/
 
 </script>
 
