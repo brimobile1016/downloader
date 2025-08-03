@@ -260,7 +260,7 @@ async function renderSingleVideo(videoId) {
 }
 
   async function download(videoId, type) {
-  const apiUrl = https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId};
+  const apiUrl = `https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}`;
   try {
     const res = await fetch(apiUrl);
     const json = await res.json();
