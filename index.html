@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Downloader MP3 YouTube</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      max-width: 500px;
+      margin: 0 auto 30px auto;
+      display: flex;
+      gap: 10px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      padding: 10px 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    .thumbnail img {
+      width: 100%;
+    }
+    .content {
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .btn {
+      background-color: #28a745;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    .btn:hover {
+      background-color: #218838;
+    }
+    .btn-video {
+      background-color: #dc3545;
+      margin-top: 5px;
+    }
+    .error {
+      text-align: center;
+      color: red;
+      margin-bottom: 20px;
+    }
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+<h1>🎵 YouTube Channel MP3 Downloader</h1>
+<form id="channelForm">
+  <input type="text" id="channelUrl" placeholder="Masukkan URL Channel YouTube" required>
+  <button type="submit">Cari</button>
+</form>
+<div id="error" class="error"></div>
+<div id="results" class="container"></div>
+
+<footer>
+  &copy; <span id="year"></span> by Saipul Anuar • Powered by YouTube RSS & API
+</footer>
+
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  function getChannelIdFromUrl(url) {
+    try {
+      const parsed = new URL(url);
+      const path = parsed.pathname.replace(/^\/+|\/+$/g, '');
+      if (path.startsWith('channel/')) {
+        return path.substring(8);
+      }
+    } catch (e) {
+      return null;
+    }
+    return null;
+  }
+
+  document.getElementById('channelForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const urlInput = document.getElementById('channelUrl').value.trim();
+    const errorBox = document.getElementById('error');
+    const container = document.getElementById('results');
+    container.innerHTML = '';
+    errorBox.textContent = '';
+
+    const channelId = getChannelIdFromUrl(urlInput);
+    if (!channelId) {
+      errorBox.textContent = '❌ URL channel tidak valid. Gunakan format https://www.youtube.com/channel/...';
+      return;
+    }
+
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+    try {
+      const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`);
+      const text = await res.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, 'application/xml');
+
+      const entries = xml.querySelectorAll('entry');
+      let counter = 0;
+      for (let entry of entries) {
+        if (counter >= 15) break;
+
+        const link = entry.querySelector('link').getAttribute('href');
+        if (link.includes('/shorts/')) continue;
+
+        const title = entry.querySelector('title').textContent;
+        const videoId = entry.querySelector('yt\\:videoId').textContent;
+        const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="thumbnail">
+            <img src="${thumbnail}" alt="Thumbnail">
+          </div>
+          <div class="content">
+            <div class="title">${title}</div>
+            <a class="btn" href="https://api.saipulanuar.eu.org/api/download/ytdl?url=${encodeURIComponent(link)}" target="_blank">Download MP3</a>
+            <a class="btn btn-video" href="https://api.saipulanuar.eu.org/api/download/ytdl?url=${encodeURIComponent(link)}&type=video" target="_blank">Download Video</a>
+          </div>
+        `;
+        container.appendChild(card);
+        counter++;
+      }
+    } catch (err) {
+      errorBox.textContent = '❌ Gagal mengambil RSS feed. Pastikan URL benar atau coba lagi nanti.';
+    }
+  });
+</script>
+</body>
+</html>
