@@ -121,116 +121,160 @@
   <button type="submit">Cari</button>
 </form>
 
-<div id="results"></div>
+<div id="error"></div>
+<div id="videos"></div>
 
 <footer>
   © 2025 by Saipul Anuar • Powered by YouTube RSS & API
 </footer>
 
 <script>
-    document.getElementById('form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const input = document.getElementById('input').value.trim();
-      const results = document.getElementById('results');
-      results.innerHTML = '🔄 Memuat...';
+const form = document.getElementById('form');
+const container = document.getElementById('videos');
+const errorBox = document.getElementById('error');
 
-      let isVideo = false;
-      let videoId = '';
-      let channelId = '';
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  let input = document.getElementById('channelId').value.trim();
+  if (!input) return;
 
-      if (input.includes('watch?v=')) {
-        // Tautan video
-        const match = input.match(/v=([^&]+)/);
-        if (match) {
-          videoId = match[1];
-          isVideo = true;
+  errorBox.textContent = '';
+  container.innerHTML = '<p>🔄 Memuat video...</p>';
+
+  // Deteksi input apakah video URL
+  const videoMatch = input.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (videoMatch) {
+    const videoId = videoMatch[1];
+    await renderSingleVideo(videoId);
+    return;
+  }
+
+  // Tangani input channel
+  let channelId = null;
+
+  if (input.startsWith('@')) {
+    input = 'https://www.youtube.com/' + input;
+  }
+
+  if (input.startsWith('http')) {
+    try {
+      const url = new URL(input);
+      const parts = url.pathname.split('/');
+      if (parts[1] === 'channel' && parts[2]) {
+        channelId = parts[2];
+      } else if (parts[1].startsWith('@')) {
+        const res = await fetch(`https://www.youtube.com/${parts[1]}`);
+        const text = await res.text();
+        const match = text.match(/channel_id=([\w\-]+)/);
+        if (match && match[1]) {
+          channelId = match[1];
+        } else {
+          throw new Error('Gagal menemukan channel_id dari username.');
         }
-      } else if (input.startsWith('@')) {
-        // Username
-        const username = input.slice(1);
-        channelId = `https://www.youtube.com/@${username}`;
-      } else if (input.includes('channel/')) {
-        const match = input.match(/channel\/([a-zA-Z0-9_-]+)/);
-        if (match) channelId = match[1];
       } else {
-        // Anggap sebagai ID channel langsung
-        channelId = input;
+        throw new Error('Format URL tidak dikenali.');
       }
+    } catch (err) {
+      errorBox.textContent = '❌ URL tidak valid atau username tidak ditemukan.';
+      container.innerHTML = '';
+      return;
+    }
+  } else {
+    channelId = input;
+  }
 
-      if (isVideo && videoId) {
-        // Fetch detail satu video
-        try {
-          const res = await fetch(`https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}`);
-          const data = await res.json();
-          if (!data.status) throw new Error('❌ Gagal memuat video!');
-          const vid = data.result;
-          results.innerHTML = `
-            <div class="video-card">
-              <img src="${vid.thumbnail}" alt="${vid.title}">
-              <h4>${vid.title}</h4>
-              <p><b>${vid.author}</b></p>
-              <a class="btn" href="${vid.mp3}" target="_blank">Download MP3</a>
-              <a class="btn btn-video" href="${vid.mp4}" target="_blank">Download Video</a>
-            </div>
-          `;
-        } catch (err) {
-          results.innerHTML = '❌ Gagal mengambil data video.';
-        }
-        return;
-      }
+  if (!channelId) {
+    errorBox.textContent = '❌ Gagal mengekstrak channel_id.';
+    container.innerHTML = '';
+    return;
+  }
 
-      // Fetch video list dari channel
-      try {
-        const rssUrl = channelId.startsWith('http') ? `${channelId}/videos` : `https://www.youtube.com/channel/${channelId}/videos`;
-        const feedUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
-        const rssRes = await fetch(feedUrl);
-        const rssData = await rssRes.json();
-        const html = rssData.contents;
+  const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const anchors = Array.from(doc.querySelectorAll('a#video-title'));
-        const uniqueVideos = new Set();
-        const videoIds = [];
+  try {
+    const res = await fetch(apiUrl);
+    const data = await res.json();
 
-        for (let a of anchors) {
-          const href = a.getAttribute('href');
-          if (href && href.startsWith('/watch?v=') && !href.includes('shorts')) {
-            const id = href.split('v=')[1].split('&')[0];
-            if (!uniqueVideos.has(id)) {
-              uniqueVideos.add(id);
-              videoIds.push(id);
-              if (videoIds.length >= 20) break;
-            }
-          }
-        }
+    if (!data.items || data.items.length === 0) {
+      throw new Error('Tidak ada video ditemukan.');
+    }
 
-        const cards = await Promise.all(videoIds.map(async id => {
-          try {
-            const res = await fetch(`https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${id}`);
-            const data = await res.json();
-            if (!data.status) return '';
-            const v = data.result;
-            return `
-              <div class="video-card">
-                <img src="${v.thumbnail}" alt="${v.title}">
-                <h4>${v.title}</h4>
-                <p><b>${v.author}</b></p>
-                <a class="btn" href="${v.mp3}" target="_blank">Download MP3</a>
-                <a class="btn btn-video" href="${v.mp4}" target="_blank">Download Video</a>
-              </div>
-            `;
-          } catch {
-            return '';
-          }
-        }));
+    container.innerHTML = '';
+    let counter = 0;
+    for (let item of data.items) {
+      if (item.link.includes('/shorts/')) continue;
+      if (counter >= 20) break;
 
-        results.innerHTML = cards.join('') || '❌ Tidak ada video ditemukan.';
-      } catch (err) {
-        results.innerHTML = '❌ Gagal mengambil RSS feed. Pastikan URL benar atau coba lagi nanti.';
-      }
-    });
-  </script>
+      const videoId = item.link.split('=')[1];
+      const title = item.title;
+      const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <img src="${thumbnail}" alt="Thumbnail">
+        <div class="title">${title}</div>
+        <button class="btn" onclick="download('${videoId}', 'mp3')">Download MP3</button>
+        <button class="btn btn-video" onclick="download('${videoId}', 'mp4')">Download Video</button>
+      `;
+      container.appendChild(card);
+      counter++;
+    }
+  } catch (err) {
+    console.error(err);
+    errorBox.textContent = '❌ Gagal mengambil video dari channel.';
+    container.innerHTML = '';
+  }
+});
+
+async function renderSingleVideo(videoId) {
+  try {
+    const apiUrl = `https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}`;
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+
+    if (!data.status) {
+      throw new Error('Gagal memuat video');
+    }
+
+    const title = data.result.title;
+    const thumbnail = data.result.thumbnail;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <img src="${thumbnail}" alt="Thumbnail">
+      <div class="title">${title}</div>
+      <button class="btn" onclick="window.open('${data.result.mp3}', '_blank')">Download MP3</button>
+      <button class="btn btn-video" onclick="window.open('${data.result.mp4}', '_blank')">Download Video</button>
+    `;
+    container.innerHTML = '';
+    container.appendChild(card);
+  } catch (err) {
+    console.error(err);
+    errorBox.textContent = '❌ Gagal menampilkan video.';
+    container.innerHTML = '';
+  }
+}
+
+async function download(videoId, type) {
+  const apiUrl = `https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}`;
+  try {
+    const res = await fetch(apiUrl);
+    const json = await res.json();
+    if (!json.status) {
+      alert('❌ Gagal mengambil link download.');
+      return;
+    }
+    const link = type === 'mp3' ? json.result.mp3 : json.result.mp4;
+    window.open(link, '_blank');
+  } catch (err) {
+    alert('❌ Terjadi kesalahan saat menghubungi API.');
+  }
+}
+</script>
+
 
 </body>
 </html>
