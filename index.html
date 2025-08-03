@@ -1,118 +1,227 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>YouTube MP3 Downloader</title>
+  <meta charset="UTF-8">
+  <title>🎵 YouTube Channel MP3 Downloader</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .video-card { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
-        .btn { display: inline-block; padding: 5px 10px; background: #007BFF; color: #fff; text-decoration: none; margin-right: 5px; }
-        .btn-video { background: #28a745; }
-    </style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #1f1f1f;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: #00ffcc;
+    }
+
+    form {
+      margin: 1.5rem auto;
+      max-width: 500px;
+      display: flex;
+      gap: 0.5rem;
+      padding: 0 1rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.6rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 0.6rem 1rem;
+      background: #00cc88;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #error {
+      color: #ff4d4d;
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    #videos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .card {
+      background: #1f1f1f;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .card img {
+      width: 100%;
+      border-radius: 6px;
+    }
+
+    .card .title {
+      font-weight: bold;
+      margin: 0.8rem 0;
+      font-size: 0.95rem;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: #00cc88;
+      color: white;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin: 0.3rem;
+      cursor: pointer;
+    }
+
+    .btn-video {
+      background: #ff8800;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      background: #1f1f1f;
+      font-size: 0.85rem;
+      margin-top: 2rem;
+    }
+  </style>
 </head>
 <body>
-    <h1>🎵 YouTube Channel MP3 Downloader</h1>
-    <form id="searchForm">
-        <input type="text" id="input" placeholder="Masukkan @username, channel ID, atau URL video/channel" style="width: 100%;" required>
-        <button type="submit">Cari</button>
-    </form>
-    <div id="result"></div>
+  <h2>🎵 YouTube Channel MP3 Downloader</h2>
+  <form id="form">
+    <input type="text" id="input" placeholder="Channel ID, @username, atau URL video" required style="width:60%">
+    <button type="submit">Cari</button>
+  </form>
+  <div id="results"></div>
+  <footer>
+    <p>© 2025 by Saipul Anuar • Powered by YouTube RSS & API</p>
+  </footer>
 
-    <script>
-        const form = document.getElementById('searchForm');
-        const resultDiv = document.getElementById('result');
+  <script>
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('input').value.trim();
+      const results = document.getElementById('results');
+      results.innerHTML = '🔄 Memuat...';
 
-        function extractChannelId(input) {
-            if (input.startsWith('@')) {
-                return fetch(`https://www.youtube.com/${input}`)
-                    .then(res => res.text())
-                    .then(html => {
-                        const match = html.match(/"channelId":"(UC[0-9A-Za-z_-]+)"/);
-                        if (match) return match[1];
-                        throw new Error("Channel ID tidak ditemukan dari @username");
-                    });
-            } else if (input.includes('youtube.com/channel/')) {
-                return Promise.resolve(input.split('/channel/')[1].split(/[/?]/)[0]);
-            } else if (input.startsWith('UC')) {
-                return Promise.resolve(input);
-            } else {
-                return Promise.reject("Input bukan channel ID");
+      let isVideo = false;
+      let videoId = '';
+      let channelId = '';
+
+      if (input.includes('watch?v=')) {
+        // Tautan video
+        const match = input.match(/v=([^&]+)/);
+        if (match) {
+          videoId = match[1];
+          isVideo = true;
+        }
+      } else if (input.startsWith('@')) {
+        // Username
+        const username = input.slice(1);
+        channelId = `https://www.youtube.com/@${username}`;
+      } else if (input.includes('channel/')) {
+        const match = input.match(/channel\/([a-zA-Z0-9_-]+)/);
+        if (match) channelId = match[1];
+      } else {
+        // Anggap sebagai ID channel langsung
+        channelId = input;
+      }
+
+      if (isVideo && videoId) {
+        // Fetch detail satu video
+        try {
+          const res = await fetch(`https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}`);
+          const data = await res.json();
+          if (!data.status) throw new Error('❌ Gagal memuat video!');
+          const vid = data.result;
+          results.innerHTML = `
+            <div class="video-card">
+              <img src="${vid.thumbnail}" alt="${vid.title}">
+              <h4>${vid.title}</h4>
+              <p><b>${vid.author}</b></p>
+              <a class="btn" href="${vid.mp3}" target="_blank">Download MP3</a>
+              <a class="btn btn-video" href="${vid.mp4}" target="_blank">Download Video</a>
+            </div>
+          `;
+        } catch (err) {
+          results.innerHTML = '❌ Gagal mengambil data video.';
+        }
+        return;
+      }
+
+      // Fetch video list dari channel
+      try {
+        const rssUrl = channelId.startsWith('http') ? `${channelId}/videos` : `https://www.youtube.com/channel/${channelId}/videos`;
+        const feedUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+        const rssRes = await fetch(feedUrl);
+        const rssData = await rssRes.json();
+        const html = rssData.contents;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const anchors = Array.from(doc.querySelectorAll('a#video-title'));
+        const uniqueVideos = new Set();
+        const videoIds = [];
+
+        for (let a of anchors) {
+          const href = a.getAttribute('href');
+          if (href && href.startsWith('/watch?v=') && !href.includes('shorts')) {
+            const id = href.split('v=')[1].split('&')[0];
+            if (!uniqueVideos.has(id)) {
+              uniqueVideos.add(id);
+              videoIds.push(id);
+              if (videoIds.length >= 20) break;
             }
+          }
         }
 
-        function isYouTubeVideoUrl(url) {
-            return url.includes('watch?v=');
-        }
+        const cards = await Promise.all(videoIds.map(async id => {
+          try {
+            const res = await fetch(`https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${id}`);
+            const data = await res.json();
+            if (!data.status) return '';
+            const v = data.result;
+            return `
+              <div class="video-card">
+                <img src="${v.thumbnail}" alt="${v.title}">
+                <h4>${v.title}</h4>
+                <p><b>${v.author}</b></p>
+                <a class="btn" href="${v.mp3}" target="_blank">Download MP3</a>
+                <a class="btn btn-video" href="${v.mp4}" target="_blank">Download Video</a>
+              </div>
+            `;
+          } catch {
+            return '';
+          }
+        }));
 
-        function fetchDownloadLinks(videoId) {
-            return fetch(`https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}`)
-                .then(res => res.json());
-        }
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            resultDiv.innerHTML = '⏳ Memuat...';
-            const input = document.getElementById('input').value.trim();
-
-            try {
-                // Jika input adalah URL video
-                if (isYouTubeVideoUrl(input)) {
-                    const videoId = new URL(input).searchParams.get('v');
-                    const data = await fetchDownloadLinks(videoId);
-                    if (!data.status) throw new Error("Gagal mengambil data video");
-
-                    const { title, thumbnail, author, mp3, mp4 } = data.result;
-                    resultDiv.innerHTML = `
-                        <div class="video-card">
-                            <img src="${thumbnail}" width="200"><br>
-                            <b>${title}</b><br>
-                            <i>${author}</i><br>
-                            <a class="btn" href="${mp3}" target="_blank">Download MP3</a>
-                            <a class="btn btn-video" href="${mp4}" target="_blank">Download Video</a>
-                        </div>`;
-                    return;
-                }
-
-                // Jika input channel
-                const channelId = await extractChannelId(input);
-                const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`);
-                const data = await res.json();
-                const parser = new DOMParser();
-                const xml = parser.parseFromString(data.contents, "text/xml");
-
-                const items = Array.from(xml.getElementsByTagName("entry"));
-                const filtered = items.filter(el => {
-                    const link = el.getElementsByTagName("link")[0].getAttribute("href");
-                    return !link.includes("shorts");
-                }).slice(0, 15); // Ambil maksimal 15 bukan shorts
-
-                if (!filtered.length) throw new Error("Tidak ada video ditemukan");
-
-                resultDiv.innerHTML = '';
-                for (const item of filtered) {
-                    const title = item.getElementsByTagName("title")[0].textContent;
-                    const link = item.getElementsByTagName("link")[0].getAttribute("href");
-                    const videoId = new URL(link).searchParams.get("v");
-                    const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-
-                    const apiRes = await fetchDownloadLinks(videoId);
-                    const { mp3, mp4 } = apiRes.result;
-
-                    resultDiv.innerHTML += `
-                        <div class="video-card">
-                            <img src="${thumbnail}" width="200"><br>
-                            <b>${title}</b><br>
-                            <a class="btn" href="${mp3}" target="_blank">Download MP3</a>
-                            <a class="btn btn-video" href="${mp4}" target="_blank">Download Video</a>
-                        </div>
-                    `;
-                }
-            } catch (err) {
-                console.error(err);
-                resultDiv.innerHTML = `❌ ${err.message}`;
-            }
-        });
-    </script>
+        results.innerHTML = cards.join('') || '❌ Tidak ada video ditemukan.';
+      } catch (err) {
+        results.innerHTML = '❌ Gagal mengambil RSS feed. Pastikan URL benar atau coba lagi nanti.';
+      }
+    });
+  </script>
 </body>
 </html>
