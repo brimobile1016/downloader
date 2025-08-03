@@ -93,6 +93,7 @@
       text-decoration: none;
       font-size: 0.9rem;
       margin: 0.3rem;
+      cursor: pointer;
     }
 
     .btn-video {
@@ -110,116 +111,130 @@
 </head>
 <body>
 
-  <header>
-    <h1>🎵 YouTube Channel MP3 Downloader</h1>
-    <p>Contoh: @saipulanuar atau URL channel</p>
-  </header>
+<header>
+  <h1>🎵 YouTube Channel MP3 Downloader</h1>
+  <p>Contoh: @saipulanuar atau URL channel</p>
+</header>
 
-  <form id="form">
-    <input type="text" id="channelId" placeholder="Masukkan Channel ID, URL, atau @username..." />
-    <button type="submit">Cari</button>
-  </form>
+<form id="form">
+  <input type="text" id="channelId" placeholder="Masukkan Channel ID, URL, atau @username..." />
+  <button type="submit">Cari</button>
+</form>
 
-  <div id="error"></div>
-  <div id="videos"></div>
+<div id="error"></div>
+<div id="videos"></div>
 
-  <footer>
-    © 2025 by Saipul Anuar • Powered by YouTube RSS & API
-  </footer>
+<footer>
+  © 2025 by Saipul Anuar • Powered by YouTube RSS & API
+</footer>
 
-  <script>
-    const form = document.getElementById('form');
-    const container = document.getElementById('videos');
-    const errorBox = document.getElementById('error');
+<script>
+const form = document.getElementById('form');
+const container = document.getElementById('videos');
+const errorBox = document.getElementById('error');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      let input = document.getElementById('channelId').value.trim();
-      if (!input) return;
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  let input = document.getElementById('channelId').value.trim();
+  if (!input) return;
 
-      let channelId = null;
+  let channelId = null;
 
-      if (input.startsWith('@')) {
-        input = 'https://www.youtube.com/' + input;
-      }
+  if (input.startsWith('@')) {
+    input = 'https://www.youtube.com/' + input;
+  }
 
-      if (input.startsWith('http')) {
-        try {
-          const url = new URL(input);
-          const parts = url.pathname.split('/');
-          if (parts[1] === 'channel' && parts[2]) {
-            channelId = parts[2];
-          } else if (parts[1].startsWith('@')) {
-            const username = parts[1];
-            const res = await fetch(`https://www.youtube.com/${username}`);
-            const text = await res.text();
-            const match = text.match(/channel_id=([\w\-]+)/);
-            if (match && match[1]) {
-              channelId = match[1];
-            } else {
-              throw new Error('Gagal menemukan channel_id dari username.');
-            }
-          } else {
-            throw new Error('Format URL tidak dikenali.');
-          }
-        } catch (err) {
-          errorBox.textContent = '❌ URL tidak valid atau username tidak ditemukan.';
-          container.innerHTML = '';
-          return;
+  if (input.startsWith('http')) {
+    try {
+      const url = new URL(input);
+      const parts = url.pathname.split('/');
+      if (parts[1] === 'channel' && parts[2]) {
+        channelId = parts[2];
+      } else if (parts[1].startsWith('@')) {
+        const res = await fetch(`https://www.youtube.com/${parts[1]}`);
+        const text = await res.text();
+        const match = text.match(/channel_id=([\w\-]+)/);
+        if (match && match[1]) {
+          channelId = match[1];
+        } else {
+          throw new Error('Gagal menemukan channel_id dari username.');
         }
       } else {
-        channelId = input;
+        throw new Error('Format URL tidak dikenali.');
       }
+    } catch (err) {
+      errorBox.textContent = '❌ URL tidak valid atau username tidak ditemukan.';
+      container.innerHTML = '';
+      return;
+    }
+  } else {
+    channelId = input;
+  }
 
-      if (!channelId) {
-        errorBox.textContent = '❌ Gagal mengekstrak channel_id.';
-        container.innerHTML = '';
-        return;
-      }
+  if (!channelId) {
+    errorBox.textContent = '❌ Gagal mengekstrak channel_id.';
+    container.innerHTML = '';
+    return;
+  }
 
-      errorBox.textContent = '';
-      container.innerHTML = '<p>🔄 Memuat video...</p>';
+  errorBox.textContent = '';
+  container.innerHTML = '<p>🔄 Memuat video...</p>';
 
-      const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+  const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 
-      try {
-        const res = await fetch(apiUrl);
-        const data = await res.json();
+  try {
+    const res = await fetch(apiUrl);
+    const data = await res.json();
 
-        if (!data.items || data.items.length === 0) {
-          throw new Error('Tidak ada video ditemukan.');
-        }
+    if (!data.items || data.items.length === 0) {
+      throw new Error('Tidak ada video ditemukan.');
+    }
 
-        container.innerHTML = '';
-        let counter = 0;
-for (let item of data.items) {
-  if (item.link.includes('/shorts/')) continue; // skip shorts
+    container.innerHTML = '';
+    let counter = 0;
+    for (let item of data.items) {
+      if (item.link.includes('/shorts/')) continue;
+      if (counter >= 15) break;
 
-  if (counter >= 15) break; // hanya 15 video reguler
+      const videoId = item.link.split('=')[1];
+      const title = item.title;
+      const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-  const videoId = item.link.split('=')[1];
-  const title = item.title;
-  const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <img src="${thumbnail}" alt="Thumbnail">
+        <div class="title">${title}</div>
+        <button class="btn" onclick="download('${videoId}', 'mp3')">Download MP3</button>
+        <button class="btn btn-video" onclick="download('${videoId}', 'mp4')">Download Video</button>
+      `;
+      container.appendChild(card);
+      counter++;
+    }
+  } catch (err) {
+    console.error(err);
+    errorBox.textContent = '❌ Gagal mengambil video dari channel.';
+    container.innerHTML = '';
+  }
+});
 
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.innerHTML = `
-    <img src="${thumbnail}" alt="Thumbnail">
-    <div class="title">${title}</div>
-    <a class="btn" href="https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp3" target="_blank">Download MP3</a>
-    <a class="btn btn-video" href="https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp4" target="_blank">Download Video</a>
-  `;
-  container.appendChild(card);
-  counter++;
+async function download(videoId, type) {
+  const apiUrl = `https://api.saipulanuar.eu.org/api/download/ytdl?url=https://www.youtube.com/watch?v=${videoId}`;
+  try {
+    const res = await fetch(apiUrl);
+    const json = await res.json();
+    if (!json.status) {
+      alert('❌ Gagal mengambil link download.');
+      return;
+    }
+    const link = type === 'mp3' ? json.result.mp3 : json.result.mp4;
+    window.open(link, '_blank');
+  } catch (err) {
+    alert('❌ Terjadi kesalahan saat menghubungi API.');
+  }
 }
-      } catch (err) {
-        console.error(err);
-        errorBox.textContent = '❌ Gagal mengambil video dari channel.';
-        container.innerHTML = '';
-      }
-    });
-  </script>
+</script>
 
 </body>
 </html>
