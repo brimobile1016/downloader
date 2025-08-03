@@ -139,7 +139,9 @@ form.addEventListener('submit', async (e) => {
   if (!input) return;
 
   errorBox.textContent = '';
-  container.innerHTML = '<p>🔄 Memuat video...</p>';
+  container.innerHTML = '<div id="loading" style="display: none; width: 100%; text-align: center; margin-top: 20px;">
+  <span>🔄 Memuat video...</span>
+</div>';
 
   // Deteksi input apakah video URL
   const videoMatch = input.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
