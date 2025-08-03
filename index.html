@@ -193,26 +193,26 @@
 
         container.innerHTML = '';
         let counter = 0;
+for (let item of data.items) {
+  if (item.link.includes('/shorts/')) continue; // skip shorts
 
-        for (let item of data.items) {
-          if (counter >= 20) break;
-          if (item.link.includes('/shorts/')) continue;
+  if (counter >= 15) break; // hanya 15 video reguler
 
-          const videoId = item.link.split('=')[1];
-          const title = item.title;
-          const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  const videoId = item.link.split('=')[1];
+  const title = item.title;
+  const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `
-            <img src="${thumbnail}" alt="Thumbnail">
-            <div class="title">${title}</div>
-            <a class="btn" href="https://api.saipulanuar.eu.org/api/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp3" target="_blank">Download MP3</a>
-            <a class="btn btn-video" href="https://api.saipulanuar.eu.org/api/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp4" target="_blank">Download Video</a>
-          `;
-          container.appendChild(card);
-          counter++;
-        }
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <img src="${thumbnail}" alt="Thumbnail">
+    <div class="title">${title}</div>
+    <a class="btn" href="https://api.saipulanuar.eu.org/api/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp3" target="_blank">Download MP3</a>
+    <a class="btn btn-video" href="https://api.saipulanuar.eu.org/api/ytdl?url=https://www.youtube.com/watch?v=${videoId}&type=mp4" target="_blank">Download Video</a>
+  `;
+  container.appendChild(card);
+  counter++;
+}
       } catch (err) {
         console.error(err);
         errorBox.textContent = '❌ Gagal mengambil video dari channel.';
